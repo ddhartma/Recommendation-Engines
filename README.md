@@ -360,7 +360,7 @@ Within ***Collaborative Filtering***, there are two main branches:
     ![image3]
 ## Recommendations with Collaborative Filtering in Code <a name="Recom_with_Collab_Filter_in_Code"></a>
 
-- Open notebook ```./notebooks/Collaborative_Filtering.ipynb```
+- Open notebook ```./notebooks/Collaborative Filtering.ipynb```
 - User-User Based Collaborative Filtering
 
     ```
@@ -384,6 +384,10 @@ Within ***Collaborative Filtering***, there are two main branches:
     user_items = reviews[['user_id', 'movie_id', 'rating']]
     user_items.head()
     ```
+
+    - Let's create a user-item matrix, the base for the Recommendation system
+    - You can do this via a [Pivot Table](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.pivot_table.html)
+    - Better (less memory consuming) [groupby method](https://stackoverflow.com/questions/39648991/pandas-dataframe-pivot-not-fitting-in-memory)
     ```
     # Create user-by-item matrix
     user_by_movie = user_items.groupby(['user_id', 'movie_id'])['rating'].max().unstack()
