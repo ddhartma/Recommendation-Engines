@@ -515,6 +515,22 @@ Within ***Collaborative Filtering***, there are two main branches:
         return closest_neighbors
         
         
+    def find_closest_neighbors(user):
+        '''
+        INPUT:
+            user - (int) the user_id of the individual you want to find the closest users
+        OUTPUT:
+            closest_neighbors - an array of the id's of the users sorted from closest to farthest away
+        '''
+        # I treated ties as arbitrary and just kept whichever was easiest to keep using the head method
+        # You might choose to do something less hand wavy
+        
+        closest_users = df_dists[df_dists['user1']==user].sort_values(by='eucl_dist').iloc[1:]['user2']
+        closest_neighbors = np.array(closest_users)
+        
+        return closest_neighbors
+        
+        
     def movies_liked(user_id, min_rating=7):
         '''
         INPUT:
@@ -540,7 +556,7 @@ Within ***Collaborative Filtering***, there are two main branches:
     
         return movie_lst
         
-        
+
     def make_recommendations(user, num_recs=10):
         '''
         INPUT:
@@ -580,6 +596,7 @@ Within ***Collaborative Filtering***, there are two main branches:
         recommendations = movie_names(recs)
         
         return recommendations
+
 
     def all_recommendations(num_recs=10):
         '''
