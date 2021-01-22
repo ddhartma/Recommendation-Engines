@@ -1,6 +1,7 @@
 [image1]: assets/ident_neighbours.png "image1"
 [image2]: assets/euc.png "image2"
 [image3]: assets/sim_recom.png "image3"
+[image4]: assets/content_based_recom.png "image4"
 
 # Recommendation Engines
 Let's create Recommendation Engines for Movie Tweetings
@@ -361,9 +362,10 @@ Within ***Collaborative Filtering***, there are two main branches:
 ## Recommendations with Collaborative Filtering in Code <a name="Recom_with_Collab_Filter_in_Code"></a>
 
 - Open notebook ```./notebooks/Collaborative Filtering.ipynb```
-- User-User Based Collaborative Filtering
+- ***User-User Based Collaborative Filtering***
 
     ```
+    import progressbar
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -396,10 +398,12 @@ Within ***Collaborative Filtering***, there are two main branches:
     # Create a dictionary with users and corresponding movies seen
     def movies_watched(user_id):
         '''
-        INPUT:
-        user_id - the user_id of an individual as int
-        OUTPUT:
-        movies - an array of movies the user has watched
+        INPUTS:
+        ------------
+            user_id - the user_id of an individual as int
+        OUTPUTS:
+        ------------
+            movies - an array of movies the user has watched
         '''
         movies = user_by_movie.loc[user_id][user_by_movie.loc[user_id].isnull() == False].index.values
 
@@ -407,18 +411,32 @@ Within ***Collaborative Filtering***, there are two main branches:
 
     def create_user_movie_dict():
         '''
-        INPUT: None
-        OUTPUT: movies_seen - a dictionary where each key is a user_id and the value is an array of movie_ids
+        INPUTS: 
+        ------------
+            None
+
+        OUTPUTS: 
+        ------------
+            movies_seen - a dictionary where each key is a user_id and the value is an array of movie_ids
         
         Creates the movies_seen dictionary
         '''
         n_users = user_by_movie.shape[0]
         movies_seen = dict()
 
+        cnter = 0
+        bar = progressbar.Progressbar(maxval=n_user+1), widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+
         for user1 in range(1, n_users+1):
             
             # assign list of movies to each user key
             movies_seen[user1] = movies_watched(user1)
+
+            cnter+=1
+            bar.update(cnter)
+        
+        bar.finish()
         
         return movies_seen
         
@@ -429,14 +447,16 @@ Within ***Collaborative Filtering***, there are two main branches:
     # Remove individuals who have watched 2 or fewer movies - don't have enough data to make recs
     def create_movies_to_analyze(movies_seen, lower_bound=2):
         '''
-        INPUT:  
-        movies_seen - a dictionary where each key is a user_id and the value is an array of movie_ids
-        lower_bound - (an int) a user must have more movies seen than the lower bound to be added to the movies_to_analyze dictionary
+        INPUTS:
+        ------------  
+            movies_seen - a dictionary where each key is a user_id and the value is an array of movie_ids
+            lower_bound - (an int) a user must have more movies seen than the lower bound to be added to the movies_to_analyze dictionary
 
-        OUTPUT: 
-        movies_to_analyze - a dictionary where each key is a user_id and the value is an array of movie_ids
+        OUTPUTS:
+        ------------ 
+            movies_to_analyze - a dictionary where each key is a user_id and the value is an array of movie_ids
         
-        The movies_seen and movies_to_analyze dictionaries should be the same except that the output dictionary has removed 
+            The movies_seen and movies_to_analyze dictionaries should be the same except that the output dictionary has removed 
         
         '''
         movies_to_analyze = dict()
@@ -452,16 +472,19 @@ Within ***Collaborative Filtering***, there are two main branches:
     # compute correlations
     def compute_correlation(user1, user2):
         '''
-        INPUT
-        user1 - int user_id
-        user2 - int user_id
-        OUTPUT
-        the correlation between the matching ratings between the two users
+        INPUTS:
+        ------------
+            user1 - int user_id
+            user2 - int user_id
+
+        OUTPUTS:
+        ------------
+            the correlation between the matching ratings between the two users
         '''
+
         # Pull movies for each user
         movies1 = movies_to_analyze[user1]
         movies2 = movies_to_analyze[user2]
-        
         
         # Find Similar Movies
         sim_movs = np.intersect1d(movies1, movies2, assume_unique=True)
@@ -472,15 +495,20 @@ Within ***Collaborative Filtering***, there are two main branches:
         
         return corr #return the correlation
     ```
+    In the denominator of the correlation coefficient, we calculate the standard deviation for each user's ratings.  For example: The ratings for user 2 are all the same rating on the movies that match with user 104.  Therefore, the standard deviation is 0.  Because a 0 is in the denominator of the correlation coefficient, we end up with a **NaN** correlation coefficient.  Therefore, a different approach (e.g. euclidian distance approach) is likely better for this particular situation.
     ```
     def compute_euclidean_dist(user1, user2):
         '''
-        INPUT
-        user1 - int user_id
-        user2 - int user_id
-        OUTPUT
-        the euclidean distance between user1 and user2
+        INPUTS:
+        ------------
+            user1 - int user_id
+            user2 - int user_id
+
+        OUTPUTS:
+        ------------
+            the euclidean distance between user1 and user2
         '''
+
         # Pull movies for each user
         movies1 = movies_to_analyze[user1]
         movies2 = movies_to_analyze[user2]
@@ -501,13 +529,39 @@ Within ***Collaborative Filtering***, there are two main branches:
     import pickle
     df_dists = pd.read_pickle("data/Term2/recommendations/lesson1/data/dists.p")
     ```
+- ***Using the Nearest Neighbors to Make Recommendations***
+
+    - In the previous question, you read in df_dists. Therefore, you have a measure of distance between each user and every other user. This dataframe holds every possible pairing of users, as well as the corresponding euclidean distance.
+
+    - Because of the NaN values that exist within the correlations of the matching ratings for many pairs of users, as we discussed above, we will proceed using df_dists. You will want to find the users that are 'nearest' each user. Then you will want to find the movies the closest neighbors have liked to recommend to each user.
+
+    ***A certain bunch of objects***:
+    - df_dists (to obtain the neighbors)
+    - user_items (to obtain the movies the neighbors and users have rated)
+    - movies (to obtain the names of the movies)
+
+    The following functions below allow you to find the ***recommendations for any user***. There are five functions which you will need:
+
+    - find_closest_neighbors - this returns a list of user_ids from closest neighbor to farthest neighbor using euclidean distance
+
+    - movies_liked - returns an array of movie_ids
+
+    - movie_names - takes the output of movies_liked and returns a list of movie names associated with the movie_ids
+
+    - make_recommendations - takes a user id and goes through closest neighbors to return a list of movie names as recommendations
+
+    - all_recommendations = loops through every user and returns a dictionary of with the key as a user_id and the value as a list of movie recommendations
+
 
     ```
     def find_closest_neighbors(user):
         '''
-        INPUT:
+        INPUTS:
+        ------------
             user - (int) the user_id of the individual you want to find the closest users
-        OUTPUT:
+        
+        OUTPUTS:
+        ------------
             closest_neighbors - an array of the id's of the users sorted from closest to farthest away
         '''
         # I treated ties as arbitrary and just kept whichever was easiest to keep using the head method
@@ -521,9 +575,12 @@ Within ***Collaborative Filtering***, there are two main branches:
         
     def find_closest_neighbors(user):
         '''
-        INPUT:
+        INPUTS:
+        ------------
             user - (int) the user_id of the individual you want to find the closest users
-        OUTPUT:
+        
+        OUTPUTS:
+        ------------
             closest_neighbors - an array of the id's of the users sorted from closest to farthest away
         '''
         # I treated ties as arbitrary and just kept whichever was easiest to keep using the head method
@@ -537,12 +594,16 @@ Within ***Collaborative Filtering***, there are two main branches:
         
     def movies_liked(user_id, min_rating=7):
         '''
-        INPUT:
-        user_id - the user_id of an individual as int
-        min_rating - the minimum rating considered while still a movie is still a "like" and not a "dislike"
-        OUTPUT:
-        movies_liked - an array of movies the user has watched and liked
+        INPUTS:
+        ------------
+            user_id - the user_id of an individual as int
+            min_rating - the minimum rating considered while still a movie is still a "like" and not a "dislike"
+
+        OUTPUTS:
+        ------------
+            movies_liked - an array of movies the user has watched and liked
         '''
+
         movies_liked = np.array(user_items.query('user_id == @user_id and rating > (@min_rating -1)')['movie_id'])
         
         return movies_liked
@@ -550,27 +611,40 @@ Within ***Collaborative Filtering***, there are two main branches:
 
     def movie_names(movie_ids):
         '''
-        INPUT
-        movie_ids - a list of movie_ids
-        OUTPUT
-        movies - a list of movie names associated with the movie_ids
+        INPUTS:
+        ------------
+            movie_ids - a list of movie_ids
         
+        OUTPUTS:
+        ------------
+            movies - a list of movie names associated with the movie_ids
         '''
+
         movie_lst = list(movies[movies['movie_id'].isin(movie_ids)]['movie'])
     
         return movie_lst
         
 
     def make_recommendations(user, num_recs=10):
-        '''
-        INPUT:
+        ''' - Make recommendations for user
+            - movies_seen - movies seen by user
+            - closest_neighbors - the closest neighbours of user
+            - neighbs_likes - checkout the movies which were liked by a neighbour
+            - np.setdiff1d - a nice way to compare two numpy arrays and 
+                           - get the ones of the array that aren`t in the other 
+                           - (it gives back array elements of neighbs_likes which are not in movies_seen)
+        INPUTS:
+        ------------
             user - (int) a user_id of the individual you want to make recommendations for
             num_recs - (int) number of movies to return
-        OUTPUT:
+
+        OUTPUTS:
+        ------------
             recommendations - a list of movies - if there are "num_recs" recommendations return this many
                             otherwise return the total number of recommendations available for the "user"
                             which may just be an empty list
         '''
+
         # I wanted to make recommendations by pulling different movies than the user has already seen
         # Go in order from closest to farthest to find movies you would recommend
         # I also only considered movies where the closest user rated the movie as a 9 or 10
@@ -603,10 +677,15 @@ Within ***Collaborative Filtering***, there are two main branches:
 
 
     def all_recommendations(num_recs=10):
-        '''
-        INPUT 
+        ''' Make recommendations for all users
+            - Pull only uniwue users from first column --> users = np.unique(df_dists['user1']) 
+
+        INPUTS:
+        ------------ 
             num_recs (int) the (max) number of recommendations for each user
-        OUTPUT
+
+        OUTPUTS:
+        ------------
             all_recs - a dictionary where each key is a user_id and the value is an array of recommended movie titles
         '''
         
@@ -616,16 +695,33 @@ Within ***Collaborative Filtering***, there are two main branches:
         
         #Store all recommendations in this dictionary
         all_recs = dict()
+
+        cnter = 0
+        bar = progressbar.Progressbar(maxval=n_user+1), widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
         
         # Make the recommendations for each user
         for user in users:
             all_recs[user] = make_recommendations(user, num_recs)
+            
+            cnter+=1
+            bar.update(cnter)
         
-        return all_recs
+    bar.finish()
+    
+    return all_recs
 
     all_recs = all_recommendations(10)
     ```
 
+## Content-based Recommendations
+- If there are only a few users, it could be impossible to find similar users
+- How to make recommendations then? --> Use ***Content-based Recommendations***
+- Remember: In collaborative filtering, you are using the ***connections of users and items*** (as you did before). In content based techniques, you are using ***information about the users and items, but not connections*** (hence the usefulness when you do not have a lot of internal data already available to use).
+
+    ![image4]
+
+- Open notebook ```./notebooks/Content_Based_Recommendation.ipynb```
 
 ## Setup Instructions <a name="Setup_Instructions"></a>
 The following is a brief set of instructions on setting up a cloned repository.
