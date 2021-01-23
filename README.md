@@ -4,7 +4,10 @@
 [image4]: assets/content_based_recom.png "image4"
 
 # Recommendation Engines
-Let's create Recommendation Engines for Movie Tweetings
+Let's create Recommendation Engines for Movie Tweetings.
+This is the base of how e.g. Facebook offers personalized advertising to you. You will learn in this session how Recommendation Engines make predictions on your preferences based on your historical behavior.
+
+
 
 ## Outline
 - [Recommendation Engines](#Recommendation_Engines)
@@ -27,26 +30,18 @@ Let's create Recommendation Engines for Movie Tweetings
 Types of Recommendations
 In this lesson, you will be working with the MovieTweetings data to apply each of the three methods of recommendations:
 
-- ***Knowledge Based*** Recommendations
+- ***Rank and Knowledge Based*** Recommendations
 - ***Collaborative Filtering Based*** Recommendations
 - ***Content Based*** Recommendations
 
-Within ***Collaborative Filtering***, there are two main branches:
 
-- ***Model Based*** Collaborative Filtering
-- ***Neighborhood Based*** Collaborative Filtering
-
-***Similarity Metrics*** for Neighborhood Based Collaborative Filtering
-
-Similarity between two users (or two items) including:
-
-- Pearson's correlation coefficient
-- Spearman's correlation coefficient
-- Kendall's Tau
-- Euclidean Distance
-- Manhattan Distance
-
-You will learn why sometimes one metric works better than another by looking at a specific situation where one metric provides more information than another.
+| ***Rank and Knowledge Based*** Recommendations     | ***Collaborative Filtering Based*** Recommendations    | ***Content Based*** Recommendations |
+| :------------- | :------------- | :------------- |
+| Analysis based on explicit knowledge about the item assortment, user preferences, and recommendation criteria    | Analysis based on common points with other users       | Analysis based on the content of each item and finds similar items 
+| No cold start (ramp-up) problems, however there are rules for knowledge aquisition     | uses the collaboration of user-item interactions       | Requires thorough knowledge of each item in order to find similar items 
+|The idea here is to recommend items beased on knowlege about users or items | The idea here is to recommend items on similar user interests | The idea here is to recommend similar items to the ones you liked before
+| Example: Customers want to specify their preferences explicitly (e.g., "the maximum price of the car is X")       | Example: "I liked the new Star Wars Film. You should go to the cinema."       | Example: You like Start Wars --> Recommend Avatar  
+|Use rank evaluation and standard filtering techniques |Similarity Measurement via correlation coefficients, euclidian distance|Similarity Measurement via correlation coefficients, euclidian distance, cosine similarity, TF-IDF (e.g. in case of filtering out the genre from text)
 
 ***Business Cases For Recommendations***: 4 ideas to successfully implement recommendations to drive revenue, which include:
 
@@ -55,7 +50,7 @@ You will learn why sometimes one metric works better than another by looking at 
 - Serendipity
 - Increased Diversity
 
-## Movie Tweeting Datasets <a name="Movie_Tweeting"></a>
+# Movie Tweeting Datasets <a name="Movie_Tweeting"></a>
 
 Some Links:
  - [A Github account set up for MovieTweetings](https://github.com/sidooms/MovieTweetings)
@@ -63,7 +58,7 @@ Some Links:
 
 - Open notebook ```./notebooks/Introduction to the Recommendation Data.ipynb``` to check the ETL pipeline
 
-## Knowledge based Recommendations <a name="Knowledge_based_recommendations"></a>
+# Rank and Knowledge based Recommendations <a name="Knowledge_based_recommendations"></a>
 
 1. ***Rank Based Recommendations***:
     - Recommendation based on highest ratings, most purchases, most listened to, etc.
@@ -87,13 +82,15 @@ Some Links:
     ```
     def create_ranked_df(movies, reviews):
         '''
-        INPUT
-        movies - the movies dataframe
-        reviews - the reviews dataframe
+        INPUTS:
+        ------------
+            movies - the movies dataframe
+            reviews - the reviews dataframe
 
-        OUTPUT
-        ranked_movies - a dataframe with movies that are sorted by highest avg rating, more reviews,
-                        then time, and must have more than 4 ratings
+        OUTPUTS:
+        ------------
+            ranked_movies - a dataframe with movies that are sorted by highest avg rating, more reviews,
+                            then time, and must have more than 4 ratings
         '''
 
         # Pull the average ratings and number of ratings for each movie
@@ -121,13 +118,15 @@ Some Links:
 
   def popular_recommendations(user_id, n_top, ranked_movies):
         '''
-        INPUT:
-        user_id - the user_id (str) of the individual you are making recommendations for
-        n_top - an integer of the number recommendations you want back
-        ranked_movies - a pandas dataframe of the already ranked movies based on avg rating, count, and time
+        INPUTS:
+        ------------
+            user_id - the user_id (str) of the individual you are making recommendations for
+            n_top - an integer of the number recommendations you want back
+            ranked_movies - a pandas dataframe of the already ranked movies based on avg rating, count, and time
 
-        OUTPUT:
-        top_movies - a list of the n_top recommended movies by movie title in order best to worst
+        OUTPUTS:
+        ------------
+            top_movies - a list of the n_top recommended movies by movie title in order best to worst
         '''
 
         top_movies = list(ranked_movies['movie'][:n_top])
@@ -137,18 +136,19 @@ Some Links:
 
   def popular_recs_filtered(user_id, n_top, ranked_movies, years=None, genres=None):
         '''
-        REDO THIS DOC STRING
+        INPUTS:
+        ------------
+            user_id - the user_id (str) of the individual you are making recommendations for
+            n_top - an integer of the number recommendations you want back
+            ranked_movies - a pandas dataframe of the already ranked movies based on avg rating, count, and time
+            years - a list of strings with years of movies
+            genres - a list of strings with genres of movies
 
-        INPUT:
-        user_id - the user_id (str) of the individual you are making recommendations for
-        n_top - an integer of the number recommendations you want back
-        ranked_movies - a pandas dataframe of the already ranked movies based on avg rating, count, and time
-        years - a list of strings with years of movies
-        genres - a list of strings with genres of movies
-
-        OUTPUT:
-        top_movies - a list of the n_top recommended movies by movie title in order best to worst
+        OUTPUTS:
+        ------------
+            top_movies - a list of the n_top recommended movies by movie title in order best to worst
         '''
+
         # Filter movies based on year and genre
         if years is not None:
             ranked_movies = ranked_movies[ranked_movies['date'].isin(years)]
@@ -164,32 +164,39 @@ Some Links:
         return top_movies
   ```
 
-## Collaborative Filtering based Recommendation <a name="Collaborative_Filtering_Based"></a>
-- Collaborative filtering has two senses, a ***narrow*** one and a more ***general*** one:
-    - In the newer, ***narrower*** sense, collaborative filtering is a method of making ***automatic predictions*** (filtering) about the ***interests of a user*** by collecting preferences or taste ***information from many users*** (collaborating)
-    - In the more ***general*** sense, collaborative filtering is the ***process of filtering for information*** or patterns using techniques involving collaboration among ***multiple agents, viewpoints, data sources***, etc.
+# Collaborative Filtering based Recommendation <a name="Collaborative_Filtering_Based"></a>
 - A method of making recommendations based on ***using the collaboration of user-item interactions***
-- Even without background information of the user and the items one can make still recommendations
+
+    ![image3]
 - We need only: ***Information about how users and items interact with one another***
 - Examples of Data Collaborative Filtering:
     - Item ratings for each user
     - Item liked by user or not
     - Item used by user or not
+- Within ***Collaborative Filtering***, there are two main branches:
 
-Within ***Collaborative Filtering***, there are two main branches:
-
-- ***Model Based*** Collaborative Filtering
-- ***Neighborhood Based*** Collaborative Filtering
+    - ***Model Based*** Collaborative Filtering
+    - ***Neighborhood Based*** Collaborative Filtering
 
 ## Neighborhood Based Collaborative Filtering <a name="Neighborhood_Based_Collaborative_Filtering"></a>
 - We are interested in finding individuals that are closely related to one another
+- In doing so we need ***Similarity Metrics***
+- Similarity between two users (or two items) can be analyzed via:
+
+    - Pearson's correlation coefficient
+    - Spearman's correlation coefficient
+    - Kendall's Tau
+    - Euclidean Distance
+    - Manhattan Distance
+
+    
 
     ![image1]
 
 - Open notebook ```./notebooks/Measuring_Simularity.ipynb```
 
 - ***Pearson's Correlation***
-    - Statistical relationshipetween two continuous variables.  
+    - Statistical relationship between two continuous variables.  
     - It is known as the best method of measuring the association between variables
     - It is based on the method of covariance.  
     - It gives information about the magnitude of correlation, as well as the direction of the relationship
@@ -203,11 +210,14 @@ Within ***Collaborative Filtering***, there are two main branches:
     ```
     def pearson_corr(x, y):
         '''
-        INPUT
-        x - an array of matching length to array y
-        y - an array of matching length to array x
-        OUTPUT
-        corr - the pearson correlation coefficient for comparing x and y
+        INPUTS:
+        ------------
+            x - an array of matching length to array y
+            y - an array of matching length to array x
+
+        OUTPUTS:
+        ------------
+            corr - the pearson correlation coefficient for comparing x and y
         '''
 
         # Compute Mean Values
@@ -243,11 +253,14 @@ Within ***Collaborative Filtering***, there are two main branches:
     ```
     def corr_spearman(x, y):
         '''
-        INPUT
-        x - an array of matching length to array y
-        y - an array of matching length to array x
-        OUTPUT
-        corr - the spearman correlation coefficient for comparing x and y
+        INPUTS:
+        ------------
+            x - an array of matching length to array y
+            y - an array of matching length to array x
+
+        OUTPUTS:
+        ------------
+            corr - the spearman correlation coefficient for comparing x and y
         '''
         
         # Compute Mean Values
@@ -289,11 +302,14 @@ Within ***Collaborative Filtering***, there are two main branches:
     ```
     def kendalls_tau(x, y):
         '''
-        INPUT
-        x - an array of matching length to array y
-        y - an array of matching length to array x
-        OUTPUT
-        tau - the kendall's tau for comparing x and y
+        INPUTS:
+        ------------
+            x - an array of matching length to array y
+            y - an array of matching length to array x
+
+        OUTPUTS:
+        ------------
+            tau - the kendall's tau for comparing x and y
         '''  
 
         # Change each vector to ranked values
@@ -324,11 +340,14 @@ Within ***Collaborative Filtering***, there are two main branches:
     ```
     def eucl_dist(x, y):
         '''
-        INPUT
-        x - an array of matching length to array y
-        y - an array of matching length to array x
-        OUTPUT
-        euc - the euclidean distance between x and y
+        INPUTS:
+        ------------
+            x - an array of matching length to array y
+            y - an array of matching length to array x
+
+        OUTPUTS:
+        ------------
+            euc - the euclidean distance between x and y
         '''  
         return np.linalg.norm(x - y)
     ```
@@ -348,18 +367,19 @@ Within ***Collaborative Filtering***, there are two main branches:
     ```
     def manhat_dist(x, y):
         '''
-        INPUT
-        x - an array of matching length to array y
-        y - an array of matching length to array x
-        OUTPUT
-        manhat - the manhattan distance between x and y
+        INPUTS:
+            x - an array of matching length to array y
+            y - an array of matching length to array x
+
+        OUTPUTS:
+        ------------
+            manhat - the manhattan distance between x and y
         '''  
         
         return sum(abs(e - s) for s, e in zip(x, y))
     ```
 
-    ![image3]
-## Recommendations with Collaborative Filtering in Code <a name="Recom_with_Collab_Filter_in_Code"></a>
+## Recommendations with Neighborhood Based Collaborative Filtering in Code <a name="Recom_with_Collab_Filter_in_Code"></a>
 
 - Open notebook ```./notebooks/Collaborative Filtering.ipynb```
 - ***User-User Based Collaborative Filtering***
@@ -401,11 +421,12 @@ Within ***Collaborative Filtering***, there are two main branches:
         INPUTS:
         ------------
             user_id - the user_id of an individual as int
+
         OUTPUTS:
         ------------
             movies - an array of movies the user has watched
         '''
-        movies = user_by_movie.loc[user_id][user_by_movie.loc[user_id].isnull() == False].index.values
+            movies = user_by_movie.loc[user_id][user_by_movie.loc[user_id].isnull() == False].index.values
 
         return movies
 
@@ -418,9 +439,8 @@ Within ***Collaborative Filtering***, there are two main branches:
         OUTPUTS: 
         ------------
             movies_seen - a dictionary where each key is a user_id and the value is an array of movie_ids
-        
-        Creates the movies_seen dictionary
         '''
+
         n_users = user_by_movie.shape[0]
         movies_seen = dict()
 
@@ -455,7 +475,6 @@ Within ***Collaborative Filtering***, there are two main branches:
         OUTPUTS:
         ------------ 
             movies_to_analyze - a dictionary where each key is a user_id and the value is an array of movie_ids
-        
             The movies_seen and movies_to_analyze dictionaries should be the same except that the output dictionary has removed 
         
         '''
@@ -678,7 +697,7 @@ Within ***Collaborative Filtering***, there are two main branches:
 
     def all_recommendations(num_recs=10):
         ''' Make recommendations for all users
-            - Pull only uniwue users from first column --> users = np.unique(df_dists['user1']) 
+            Pull only unique users from first column --> users = np.unique(df_dists['user1']) 
 
         INPUTS:
         ------------ 
@@ -697,7 +716,7 @@ Within ***Collaborative Filtering***, there are two main branches:
         all_recs = dict()
 
         cnter = 0
-        bar = progressbar.Progressbar(maxval=n_user+1), widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar = progressbar.Progressbar(maxval=n_user+1, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
         bar.start()
         
         # Make the recommendations for each user
@@ -714,10 +733,10 @@ Within ***Collaborative Filtering***, there are two main branches:
     all_recs = all_recommendations(10)
     ```
 
-## Content-based Recommendations
-- If there are only a few users, it could be impossible to find similar users
-- How to make recommendations then? --> Use ***Content-based Recommendations***
-- Remember: In collaborative filtering, you are using the ***connections of users and items*** (as you did before). In content based techniques, you are using ***information about the users and items, but not connections*** (hence the usefulness when you do not have a lot of internal data already available to use).
+# Content-based Recommendations
+- The idea here is to recommend similar items to the ones you liked before. The system first finds the similarity between all pairs of articles and then uses the articles most similar to the articles already evaluated by a user to generate a list of recommendations.
+- When to use? For example when there are only a few users. For example with collaborative filtering it could be impossible to find similar users. 
+- Remember: In collaborative filtering, you are using the ***connections of users and items***. In content based techniques, you are using ***information about the users and items, but not connections***.
 
     ![image4]
 
@@ -781,6 +800,8 @@ $ conda env list
 * This project is part of the Udacity Nanodegree program 'Data Science'. Please check this [link](https://www.udacity.com) for more information.
 
 ## Further Links <a name="Further_Links"></a>
+Recommendation Engines
+* [Essentials of recommendation engines: content-based and collaborative filtering](https://towardsdatascience.com/essentials-of-recommendation-engines-content-based-and-collaborative-filtering-31521c964922)
 
 Git/Github
 * [GitFlow](https://datasift.github.io/gitflow/IntroducingGitFlow.html)
