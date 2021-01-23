@@ -2,11 +2,14 @@
 [image2]: assets/euc.png "image2"
 [image3]: assets/sim_recom.png "image3"
 [image4]: assets/content_based_recom.png "image4"
+[image5]: assets/dot_sim.png "image5"
+[image6]: assets/loc_based_recom.png "image6"
+[image7]: assets/deep_learn_recom.png "image7"
+[image8]: assets/type_rating.png "image8"
 
-# Recommendation Engines
+# Recommendation Engines 
 Let's create Recommendation Engines for Movie Tweetings.
 This is the base of how e.g. Facebook offers personalized advertising to you. You will learn in this session how Recommendation Engines make predictions on your preferences based on your historical behavior.
-
 
 
 ## Outline
@@ -16,10 +19,10 @@ This is the base of how e.g. Facebook offers personalized advertising to you. Yo
   - [Knowledge based recommendations](#Knowledge_based_recommendations)
   - [Collaborative Filtering based Recommendation](#Collaborative_Filtering_Based)
     - [Neighborhood Based Collaborative Filtering](#Neighborhood_Based_Collaborative_Filtering)
-    - [Recommendations with Collaborative Filtering in Code](#Recom_with_Collab_Filter_in_Code)
-
-
-
+    - [Recommendations with Neighborhood Based Collaborative Filtering in Code](#Recom_with_Collab_Filter_in_Code)
+  - [Content-based Recommendations](#Content_based_Recommendations)
+  - [Types of Ratings](#Types_of_Ratings) 
+  
 - [Setup Instructions](#Setup_Instructions)
 - [Acknowledgments](#Acknowledgments)
 - [Further Links](#Further_Links)
@@ -30,18 +33,18 @@ This is the base of how e.g. Facebook offers personalized advertising to you. Yo
 Types of Recommendations
 In this lesson, you will be working with the MovieTweetings data to apply each of the three methods of recommendations:
 
-- ***Rank and Knowledge Based*** Recommendations
+- ***Knowledge Based*** Recommendations
 - ***Collaborative Filtering Based*** Recommendations
 - ***Content Based*** Recommendations
 
 
-| ***Rank and Knowledge Based*** Recommendations     | ***Collaborative Filtering Based*** Recommendations    | ***Content Based*** Recommendations |
+| ***Knowledge Based*** Recommendations     | ***Collaborative Filtering Based*** Recommendations    | ***Content Based*** Recommendations |
 | :------------- | :------------- | :------------- |
-| Analysis based on explicit knowledge about the item assortment, user preferences, and recommendation criteria    | Analysis based on common points with other users       | Analysis based on the content of each item and finds similar items 
+| Analysis based on explicit knowledge about the item assortment, user preferences, and recommendation criteria    | Analysis based on connections between users and items   | Analysis based on the content of each item and finds similar items 
 | No cold start (ramp-up) problems, however there are rules for knowledge aquisition     | uses the collaboration of user-item interactions       | Requires thorough knowledge of each item in order to find similar items 
-|The idea here is to recommend items beased on knowlege about users or items | The idea here is to recommend items on similar user interests | The idea here is to recommend similar items to the ones you liked before
-| Example: Customers want to specify their preferences explicitly (e.g., "the maximum price of the car is X")       | Example: "I liked the new Star Wars Film. You should go to the cinema."       | Example: You like Start Wars --> Recommend Avatar  
-|Use rank evaluation and standard filtering techniques |Similarity Measurement via correlation coefficients, euclidian distance|Similarity Measurement via correlation coefficients, euclidian distance, cosine similarity, TF-IDF (e.g. in case of filtering out the genre from text)
+|The idea here is to recommend items based on knowlege about items which meet user specifications | The idea here is to recommend items on similar user interests. Use ratings from many users across items in a collaborative way. | The idea here is to recommend similar items to the ones you liked before. Often the similarities are related to item descriptions or purpose.
+| Example: Common for luxury or rare purchases (cars, homes, jewelery). Get back items which fullfill certain criteria (e.g., "the maximum price of the car is X")       | Example: "I liked the new Star Wars Film. You should go to the cinema."       | Example: You like Start Wars --> Recommend Avatar  
+|In knowledge based recommendations, users provide information about the types of recommendations they would like back. |Similarity Measurement via correlation coefficients, euclidian distance | Similarity Measurement via correlation coefficients, euclidian distance, cosine similarity (similarity matrix), TF-IDF (e.g. in case of filtering out the genre from text)
 
 ***Business Cases For Recommendations***: 4 ideas to successfully implement recommendations to drive revenue, which include:
 
@@ -58,7 +61,7 @@ Some Links:
 
 - Open notebook ```./notebooks/Introduction to the Recommendation Data.ipynb``` to check the ETL pipeline
 
-# Rank and Knowledge based Recommendations <a name="Knowledge_based_recommendations"></a>
+# Knowledge based Recommendations <a name="Knowledge_based_recommendations"></a>
 
 1. ***Rank Based Recommendations***:
     - Recommendation based on highest ratings, most purchases, most listened to, etc.
@@ -546,7 +549,7 @@ Some Links:
     ```
     # Read in solution euclidean distances"
     import pickle
-    df_dists = pd.read_pickle("data/Term2/recommendations/lesson1/data/dists.p")
+    df_dists = pd.read_pickle("dists.p")
     ```
 - ***Using the Nearest Neighbors to Make Recommendations***
 
@@ -733,7 +736,7 @@ Some Links:
     all_recs = all_recommendations(10)
     ```
 
-# Content-based Recommendations
+# Content-based Recommendations <a name="Content_based_Recommendations"></a>
 - The idea here is to recommend similar items to the ones you liked before. The system first finds the similarity between all pairs of articles and then uses the articles most similar to the articles already evaluated by a user to generate a list of recommendations.
 - When to use? For example when there are only a few users. For example with collaborative filtering it could be impossible to find similar users. 
 - Remember: In collaborative filtering, you are using the ***connections of users and items***. In content based techniques, you are using ***information about the users and items, but not connections***.
@@ -742,6 +745,186 @@ Some Links:
 
 - Open notebook ```./notebooks/Content_Based_Recommendation.ipynb```
 
+    ```
+    import pandas as pd
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from collections import defaultdict
+    from IPython.display import HTML
+    import progressbar
+    import tests as t
+    import pickle
+
+    %matplotlib inline
+
+    # Read in the datasets
+    movies = pd.read_csv('movies_clean.csv')
+    reviews = pd.read_csv('reviews_clean.csv')
+
+    del movies['Unnamed: 0']
+    del reviews['Unnamed: 0']
+
+    all_recs = pickle.load(open("all_recs.p", "rb"))
+    ```
+    Even in the content based recommendation, you will often use collaborative filtering. You are finding items that are similar and making recommendations of new items based on the ***highest ratings of a user***. Because you are still using the user ratings of an item, this is an example of a blend between content and collaborative filtering based techniques.
+    ```
+    # create a dataframe similar to reviews, but ranked by rating for each user
+    ranked_reviews = reviews.sort_values(by=['user_id', 'rating'], ascending=False)
+    ranked_reviews.head(20)
+    ```
+    ***Similyrity matrix***: We can perform the dot product on a matrix of movies with content characteristics to provide a movie by movie matrix where each cell is ***an indication of how similar two movies are to one another***. 
+    It's a matrix of similarities between items (movies) based only on the content related to those movies (year and genre). The similarity matrix is completely created using only the items (movies). There is no information used about the users implemented. For any movie, you would be able to determine the most related additional movies based only on the genre and the year of the movie. This is the premise of how a completely content based recommendation would be made.
+    
+    In the below image, you can see that movies 1 and 8 are most similar, movies 2 and 8 are most similar and movies 3 and 9 are most similar for this subset of the data. The diagonal elements of the matrix will contain the similarity of a movie with itself, which will be the largest possible similarity (which will also be the number of 1's in the movie row within the orginal movie content matrix.
+
+    ![image5]
+
+    ```
+    # Subset of movies 
+    # movie_content is only using the dummy variables for each genre and the 3 century based year dummy columns
+    movie_content = np.array(movies.iloc[:, 4:])
+
+    # Take the dot product to obtain a movie x movie matrix of similarities
+    dot_prod_movies = movie_content.dot(np.transpose(movie_content))
+    ```
+
+    ```
+    def find_similar_movies(movie_id):
+        '''
+        INPUTS:
+        ------------
+            movie_id - a movie_id 
+
+        OUTPUTS:
+        ------------
+            similar_movies - an array of the most similar movies by title
+        '''
+
+        # find the row of each movie id
+        movie_idx = np.where(movies['movie_id'] == movie_id)[0][0]
+        
+        # find the most similar movie indices - to start I said they need to be the same for all content
+        similar_idxs = np.where(dot_prod_movies[movie_idx] == np.max(dot_prod_movies[movie_idx]))[0]
+        
+        # pull the movie titles based on the indices
+        similar_movies = np.array(movies.iloc[similar_idxs, ]['movie'])
+        
+        return similar_movies
+        
+        
+    def get_movie_names(movie_ids):
+        '''
+        INPUTS:
+        ------------
+            movie_ids - a list of movie_ids
+
+        OUTPUTS:
+        ------------
+            movies - a list of movie names associated with the movie_ids
+        '''
+
+        movie_lst = list(movies[movies['movie_id'].isin(movie_ids)]['movie'])
+    
+        return movie_lst
+
+
+    def make_recs():
+        '''
+        INPUT
+        None
+        OUTPUT
+        recs - a dictionary with keys of the user and values of the recommendations
+        '''
+        # Create dictionary to return with users and ratings
+        recs = defaultdict(set)
+        # How many users for progress bar
+        n_users = len(users_who_need_recs)
+
+        
+        # Create the progressbar
+        cnter = 0
+        bar = progressbar.ProgressBar(maxval=n_users+1, widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+        
+        # For each user
+        for user in users_who_need_recs:
+            
+            # Update the progress bar
+            cnter+=1 
+            bar.update(cnter)
+
+            # Pull only the reviews the user has seen
+            reviews_temp = ranked_reviews[ranked_reviews['user_id'] == user]
+            
+            # Look at each of the movies (highest ranked first), 
+            movies_temp = np.array(reviews_temp['movie_id'])
+            
+            # pull the movies the user hasn't seen that are most similar
+            movie_names = np.array(get_movie_names(movies_temp))
+            
+            # These will be the recommendations - continue until 10 recs 
+            # or you have depleted the movie list for the user
+            for movie in movies_temp:
+                rec_movies = find_similar_movies(movie)
+                temp_recs = np.setdiff1d(rec_movies, movie_names)
+                recs[user].update(temp_recs)
+
+                # If there are more than 
+                if len(recs[user]) > 9:
+                    break
+
+        bar.finish()
+        
+        return recs
+    ```
+    ```
+    # Explore recommendations
+    users_without_all_recs = []
+    users_with_all_recs = []
+    no_recs = []
+    for user, movie_recs in recs.items():
+        if len(movie_recs) < 10:
+            users_without_all_recs.append(user)
+        if len(movie_recs) > 9:
+            users_with_all_recs.append(user)
+        if len(movie_recs) == 0:
+            no_recs.append(user)
+    ```
+    ```
+    # Closer look at individual user characteristics
+    user_items = reviews[['user_id', 'movie_id', 'rating']]
+    user_by_movie = user_items.groupby(['user_id', 'movie_id'])['rating'].max().unstack()
+
+    def movies_watched(user_id):
+        '''
+        INPUT:
+        user_id - the user_id of an individual as int
+        OUTPUT:
+        movies - an array of movies the user has watched
+        '''
+        movies = user_by_movie.loc[user_id][user_by_movie.loc[user_id].isnull() == False].index.values
+
+        return movies
+
+    movies_watched(189)
+    ```
+
+    ```
+    cnter = 0
+    print("Some of the movie lists for users without any recommendations include:")
+    for user_id in no_recs:
+        print(user_id)
+        print(get_movie_names(movies_watched(user_id)))
+        cnter+=1
+        if cnter > 10:
+            break
+    ```
+# Types of Ratings: <a name="Types_of_Ratings"></a>
+- If you are in control of choosing your rating scale, think of what might be most beneficial to your scenario. If you are working alongside a team TO design the interfaces for how data will be collected, there are number of ideas to keep in mind. 
+- Overview of [ratings](https://cxl.com/blog/survey-response-scales/)
+
+    ![image8]
+    
 ## Setup Instructions <a name="Setup_Instructions"></a>
 The following is a brief set of instructions on setting up a cloned repository.
 
@@ -802,6 +985,13 @@ $ conda env list
 ## Further Links <a name="Further_Links"></a>
 Recommendation Engines
 * [Essentials of recommendation engines: content-based and collaborative filtering](https://towardsdatascience.com/essentials-of-recommendation-engines-content-based-and-collaborative-filtering-31521c964922)
+* [AirBnB uses Embeddings for Recommendations](https://medium.com/airbnb-engineering/listing-embeddings-for-similar-listing-recommendations-and-real-time-personalization-in-search-601172f7603e)
+* [Location-Based Recommendation Systems](https://link.springer.com/referenceworkentry/10.1007%2F978-3-319-17885-1_1580)
+
+    ![image6]
+* [Deep learning for recommender systems](https://ebaytech.berlin/deep-learning-for-recommender-systems-48c786a20e1a)
+
+    ![image7]
 
 Git/Github
 * [GitFlow](https://datasift.github.io/gitflow/IntroducingGitFlow.html)
