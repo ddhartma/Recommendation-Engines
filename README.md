@@ -410,6 +410,14 @@ Some Links:
     user_items.head()
     ```
 
+    |    |   user_id |   movie_id |   rating |
+    |---:|----------:|-----------:|---------:|
+    |  0 |         1 |      68646 |       10 |
+    |  1 |         1 |     113277 |       10 |
+    |  2 |         2 |     422720 |        8 |
+    |  3 |         2 |     454876 |        8 |
+    |  4 |         2 |     790636 |        7 |
+    
     - Let's create a user-item matrix, the base for the Recommendation system
     - You can do this via a [Pivot Table](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.pivot_table.html)
     - Better (less memory consuming) [groupby method](https://stackoverflow.com/questions/39648991/pandas-dataframe-pivot-not-fitting-in-memory)
@@ -417,6 +425,20 @@ Some Links:
     # Create user-by-item matrix
     user_by_movie = user_items.groupby(['user_id', 'movie_id'])['rating'].max().unstack()
     ```
+    
+    | user_id / movie_id |   8 |   10 |   12 |   25 |   91 |   417 |   439 |   443 |   628 |   833 |
+    |----------:|----:|-----:|-----:|-----:|-----:|------:|------:|------:|------:|------:|
+    |         1 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         2 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         3 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         4 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         5 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         6 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         7 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         8 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |         9 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+    |        10 | nan |  nan |  nan |  nan |  nan |   nan |   nan |   nan |   nan |   nan |
+
     ```
     # Create a dictionary with users and corresponding movies seen
     def movies_watched(user_id):
@@ -576,25 +598,6 @@ Some Links:
 
 
     ```
-    def find_closest_neighbors(user):
-        '''
-        INPUTS:
-        ------------
-            user - (int) the user_id of the individual you want to find the closest users
-        
-        OUTPUTS:
-        ------------
-            closest_neighbors - an array of the id's of the users sorted from closest to farthest away
-        '''
-        # I treated ties as arbitrary and just kept whichever was easiest to keep using the head method
-        # You might choose to do something less hand wavy
-        
-        closest_users = df_dists[df_dists['user1']==user].sort_values(by='eucl_dist').iloc[1:]['user2']
-        closest_neighbors = np.array(closest_users)
-        
-        return closest_neighbors
-        
-        
     def find_closest_neighbors(user):
         '''
         INPUTS:
